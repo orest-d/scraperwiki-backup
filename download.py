@@ -48,7 +48,7 @@ def sftp_download(host, username, password=None, target_directory="."):
     sftp = ssh.open_sftp()
 
     def ignore(path):
-        return ".cache" in path or ".git" in path or "/venv/" in path
+        return ".cache" in path or ".git" in path or "/venv/" in path or "__pycache__" in path
     def sftp_walk(remotepath):
         if not ignore(remotepath):
             path = remotepath
