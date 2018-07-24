@@ -288,14 +288,14 @@ if __name__ == "__main__":
         logging.basicConfig(filename=config.log, level=log_level)
 
     try:
-        ignore_folders = open(config.ignore_folders).read().split("/n")
+        ignore_folders = list(open(config.ignore_folders).readlines().filter(len))
         logging.info("Ignore folders loaded from %s:\n%s"%(config.ignore_folders,",\n".join(ignore_folders)))
     except:
         logging.error("Can't load ignore folders from %s"%(config.ignore_folders))
         logging.info("Using builtin ignore folders:\n%s"%(",\n".join(ignore_folders)))
 
     try:
-        ignore_patterns = open(config.ignore_patterns).read().split("/n")
+        ignore_patterns = list(open(config.ignore_patterns).readlines().filter(len))
         logging.info("Ignore patterns loaded from %s:\n%s"%(config.ignore_patterns,",\n".join(ignore_patterns)))
     except:
         logging.error("Can't load ignore patterns from %s"%(config.ignore_patterns))
