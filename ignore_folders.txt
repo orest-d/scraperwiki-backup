@@ -1,0 +1,16 @@
+.cache
+.git
+.subversion
+venv
+virtualenvs
+.virtualenvs
+newvenv
+oldvenv
+py3env
+__pycache__
+.vim
+.local
+.pip
+pip-RcFOfd-uninstall
+R
+R-3.1.1

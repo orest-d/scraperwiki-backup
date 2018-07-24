@@ -1,0 +1,14 @@
+*.sqlite
+*.sqlite-journal
+*.log
+log.txt
+*/log.txt
+scraperwiki.sqlite.20170721.bk
+*/scraperwiki.sqlite.20170721.bk
+cron.log.save
+*.so
+*.tar.gz
+*.tgz
+*.pyc
+*.sqlite.bk
+*tmp/tmp*
