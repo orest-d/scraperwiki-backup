@@ -1,4 +1,3 @@
-*.sqlite
 *.sqlite-journal
 *.log
 log.txt

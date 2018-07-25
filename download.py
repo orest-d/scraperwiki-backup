@@ -7,6 +7,7 @@ from stat import S_ISDIR
 import os
 import traceback
 import fnmatch
+import sys
 
 def load_scp_test():
     ssh = SSHClient()
@@ -120,11 +121,16 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
             remote_file = os.path.join(path, file)
             local_file = os.path.normpath(os.path.join(localpath,file))
             ignore, reason = ignore_file(remote_file)
+            error_message=""
             if ignore:
                 size=0
                 status="OK"
                 ignored=1
             else:
+                try:
+                    os.makedirs(localpath)
+                except:
+                    pass
                 try:
                     size=sftp.stat(remote_file).st_size
                     if size_limit>0 and size>size_limit:
@@ -137,18 +143,22 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
                         ignored = 0
                 except:
                     logging.exception("Error getting size: %s"%remote_file)
+                    error_message=str(sys.last_value)
                     size = 0
                     status = "ERROR"
                     ignored=1
                     reason="ERROR"
 
-                # sftp.get(remote, local) line for dowloading.
-                try:
-                    os.makedirs(localpath)
-                except:
-                    pass
-                total_size+=size
-                file_list.append(dict(id=username,path=path,file=file,file_path=remote_file,size=size, status=status, ignored=ignored, ignore_reason=reason))
+            total_size+=size
+            file_list.append(dict(id=username,
+                                  path=path,
+                                  file=file,
+                                  file_path=remote_file,
+                                  size=size,
+                                  status=status,
+                                  ignored=ignored,
+                                  ignore_reason=reason,
+                                  error_message=error_message))
 
             count+=1
 
@@ -183,6 +193,7 @@ def sftp_list(host, username, password=None):
                     logging.exception("Error getting size: %s"%remote_file)
                     size = 0
                     status = "ERROR"
+                    reason="ERROR"
                     ignored = 1
             file_list.append(dict(id=username,path=path,file=file,file_path=remote_file,size=size, status=status, ignored=ignored, ignore_reason=reason))
 
@@ -192,7 +203,7 @@ def sftp_list(host, username, password=None):
 
 def process(tablename, processedname, host, password, target_directory, size_limit, filespath):
     df = pd.read_csv(tablename)
-    df_files = pd.DataFrame(columns=["id", "Name", "path", "file", "file_path", "size", "status", "ignored", "ignore_reason"])
+    df_files = pd.DataFrame(columns=["id", "Name", "file", "size", "status", "ignored", "ignore_reason","error_message", "path", "file_path"])
 
     for index, row in df.iterrows():
         username = row.id
