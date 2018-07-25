@@ -1,4 +1,5 @@
 *.sqlite
+scraperwiki.sqlite
 *.sqlite-journal
 *.log
 log.txt
@@ -13,3 +14,7 @@ cron.log.save
 *.sqlite.bk
 *tmp/tmp*
 out
+*.csv
+*.xl*
+*/tmp/*
+*/tmp/*/*

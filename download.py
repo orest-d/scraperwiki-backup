@@ -148,7 +148,7 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
                         ignored = 0
                 except:
                     logging.exception("Error getting size: %s"%remote_file)
-                    error_message=str(sys.last_value)
+                    error_message=" ".join(traceback.format_exc().split("\n")[:4])
                     size = 0
                     status = "ERROR"
                     ignored=1
