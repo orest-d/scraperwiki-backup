@@ -8,6 +8,7 @@ import os
 import traceback
 import fnmatch
 import sys
+import datetime
 
 def load_scp_test():
     ssh = SSHClient()
@@ -122,6 +123,8 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
             local_file = os.path.normpath(os.path.join(localpath,file))
             ignore, reason = ignore_file(remote_file)
             error_message=""
+            mtime=""
+
             if ignore:
                 size=0
                 status="OK"
@@ -132,7 +135,9 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
                 except:
                     pass
                 try:
-                    size=sftp.stat(remote_file).st_size
+                    stat = sftp.stat(remote_file)
+                    size=stat.st_size
+                    mtime = datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
                     if size_limit>0 and size>size_limit:
                         status = "OK"
                         ignored = 1
@@ -158,7 +163,8 @@ def sftp_download(host, username, password=None, target_directory=".",size_limit
                                   status=status,
                                   ignored=ignored,
                                   ignore_reason=reason,
-                                  error_message=error_message))
+                                  error_message=error_message,
+                                  mtime=mtime))
 
             count+=1
 
@@ -180,13 +186,16 @@ def sftp_list(host, username, password=None):
         for file in files:
             remote_file = os.path.join(os.path.join(path, file))
             ignore, reason = ignore_file(remote_file)
+            mtime=""
             if ignore:
                 size=0
                 status="OK"
                 ignored=1
             else:
                 try:
-                    size=sftp.stat(remote_file).st_size
+                    stat = sftp.stat(remote_file)
+                    size=stat.st_size
+                    mtime = datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
                     status = "OK"
                     ignored = 0
                 except:
@@ -195,7 +204,7 @@ def sftp_list(host, username, password=None):
                     status = "ERROR"
                     reason="ERROR"
                     ignored = 1
-            file_list.append(dict(id=username,path=path,file=file,file_path=remote_file,size=size, status=status, ignored=ignored, ignore_reason=reason))
+            file_list.append(dict(id=username,path=path,file=file,file_path=remote_file,size=size, status=status, ignored=ignored, ignore_reason=reason,mtime=mtime))
 
     sftp.close()
     ssh.close()
