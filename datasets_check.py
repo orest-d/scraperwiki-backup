@@ -30,23 +30,29 @@ def main():
         resource_name = ""
         url=""
         scraperwiki_in_url=False
-        scraperwiki_id=""
+        scraperwiki_id = ""
+        scraperwiki_hyperlink = ""
         for resource in resources:
             url = resource["url"]
             scraperwiki_in_url = "scraperwiki" in url
             resource_name = resource["name"]
             if scraperwiki_in_url:
                 scraperwiki_id = next(filter(len,up.urlparse(url).path.split("/")))
+                scraperwiki_hyperlink = '=HYPERLINK("https://app.quickcode.io/dataset/%s", "%s")' % (scraperwiki_id, scraperwiki_id)
                 break
             else:
                 scraperwiki_id = ""
+                scraperwiki_hyperlink = ""
+        dataset_hyperlink = '=HYPERLINK("https://data.humdata.org/dataset/%s", "%s")'%(name,name)
         data.append(dict(
             dataset_name=name,
+            dataset_hyperlink = dataset_hyperlink,
             resource_name=resource_name,
             maintainer=maintainer,
             resource_url=url,
             scraperwiki_id = scraperwiki_id,
             scraperwiki_name = swid_to_name.get(scraperwiki_id,""),
+            scraperwiki_hyperlink=scraperwiki_hyperlink,
             scraperwiki_in_url=scraperwiki_in_url))
     df=pd.DataFrame(data)
     df.to_csv("dataset.csv",index=False)
