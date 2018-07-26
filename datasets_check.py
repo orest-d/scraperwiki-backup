@@ -4,6 +4,9 @@ from hdx.utilities import is_valid_uuid
 import pandas as pd
 from os.path import join, expanduser
 import urllib.parse as up
+from urllib.request import urlopen, Request
+import json
+import traceback
 
 def main():
     dfsw = pd.read_csv("table.csv")
@@ -13,10 +16,20 @@ def main():
     datasets = Dataset.get_all_datasets()
     data=[]
 
+    hdxkey = open(join(expanduser('~'), '.hdxkey')).read().strip()
+
     for i,dataset in enumerate(datasets):
         name = dataset['name']
         print (i,name)
+        revision_timestamp = ""
+        revision_author = ""
+
         maintainer = dataset['maintainer']
+        try:
+            dataset_date = dataset.get_dataset_date()
+        except:
+            dataset_date = "?"
+        metadata_modified = dataset["metadata_modified"]
         org=""
         if not is_valid_uuid(maintainer):
             org = dataset.get('organization')
@@ -39,6 +52,16 @@ def main():
             if scraperwiki_in_url:
                 scraperwiki_id = next(filter(len,up.urlparse(url).path.split("/")))
                 scraperwiki_hyperlink = '=HYPERLINK("https://app.quickcode.io/dataset/%s", "%s")' % (scraperwiki_id, scraperwiki_id)
+                try:
+                    request = Request("https://data.humdata.org/api/3/action/package_revision_list?id=%s" % name)
+                    request.add_header('Authorization', hdxkey)
+                    o = json.loads(urlopen(request).read().decode("utf-8"))
+                    revision_timestamp = o["result"][0]["timestamp"]
+                    revision_author = o["result"][0]["author"]
+                except:
+                    traceback.print_exc()
+                    revision_timestamp = "?"
+                    revision_author = "?"
                 break
             else:
                 scraperwiki_id = ""
@@ -46,6 +69,10 @@ def main():
         dataset_hyperlink = '=HYPERLINK("https://data.humdata.org/dataset/%s", "%s")'%(name,name)
         data.append(dict(
             dataset_name=name,
+            dataset_date=dataset_date,
+            metadata_modified = metadata_modified,
+            revision_timestamp=revision_timestamp,
+            revision_author=revision_author,
             dataset_hyperlink = dataset_hyperlink,
             resource_name=resource_name,
             maintainer=maintainer,
