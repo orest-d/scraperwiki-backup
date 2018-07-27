@@ -18,3 +18,10 @@ out
 *.xl*
 */tmp/*
 */tmp/*/*
+.Rhistory
+.bash_history
+.selected_editor
+.viminfo
+.hdxkey
+.ssh/*
+*/.ssh/*

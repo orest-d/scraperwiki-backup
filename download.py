@@ -78,8 +78,12 @@ ignore_patterns = [
 ]
 
 def ignore_file(path):
+    file = os.path.split(path)[1]
+
     for pattern in ignore_patterns:
         if fnmatch.fnmatchcase(path,pattern):
+            return True, pattern
+        if fnmatch.fnmatchcase(file, pattern):
             return True, pattern
     return False,""
 
@@ -308,17 +312,18 @@ if __name__ == "__main__":
         logging.basicConfig(filename=config.log, level=log_level)
 
     try:
-        ignore_folders = list(open(config.ignore_folders).readlines().filter(len))
+
+        ignore_folders = [row.strip() for row in open(config.ignore_folders).readlines() if len(row.strip())]
         logging.info("Ignore folders loaded from %s:\n%s"%(config.ignore_folders,",\n".join(ignore_folders)))
     except:
-        logging.error("Can't load ignore folders from %s"%(config.ignore_folders))
+        logging.exception("Can't load ignore folders from %s"%(config.ignore_folders))
         logging.info("Using builtin ignore folders:\n%s"%(",\n".join(ignore_folders)))
 
     try:
-        ignore_patterns = list(open(config.ignore_patterns).readlines().filter(len))
+        ignore_patterns = [row.strip() for row in open(config.ignore_patterns).readlines() if len(row.strip())]
         logging.info("Ignore patterns loaded from %s:\n%s"%(config.ignore_patterns,",\n".join(ignore_patterns)))
     except:
-        logging.error("Can't load ignore patterns from %s"%(config.ignore_patterns))
+        logging.exception("Can't load ignore patterns from %s"%(config.ignore_patterns))
         logging.info("Using builtin ignore patterns:\n%s"%(",\n".join(ignore_patterns)))
 
     if config.scan:
