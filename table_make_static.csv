@@ -1,0 +1,11 @@
+decision,maintainer,revision_author,id,Name
+make static,7ae95211-71dd-484e-8538-2c625315eb56,luiscape,7g2hvyz,NGO AidMap Ebola Projects
+make static,154de241-38d6-47d3-a77f-0a9848a61df3,luiscape,3zarzzv,OCHA ORS Scraper
+make static,154de241-38d6-47d3-a77f-0a9848a61df3,luiscape,egzfk1p,Colombia SIDIH
+make static,154de241-38d6-47d3-a77f-0a9848a61df3,luiscape,lkbrks7,FTS: Nepal Earthquake Coverage
+make static,154de241-38d6-47d3-a77f-0a9848a61df3,luiscape,mcu9bxo,DISABLED FTS Emergency Collector
+make static,23b4c749-bd1b-499c-a8f1-8d76240a534d,luiscape,n9fnudn,WHO Health
+make static,23b4c749-bd1b-499c-a8f1-8d76240a534d,godfrey,kjaolpi,DISABLED FTS Ebola Coverage
+make static,7d7f5f8d-7e3b-483a-8de1-2b122010c1eb,luiscape,g7nnqgn,DISABLED WHO Ebola SitRep Scraper
+make static,154de241-38d6-47d3-a77f-0a9848a61df3,marindi,fhsehwp,NCDC / NOAA Precipitation Collector
+make static,9cabb67c-c08a-4a11-a410-b3a57364de15,godfrey,gzk5p3z,HDRO Collector
