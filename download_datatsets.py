@@ -97,6 +97,9 @@ def main():
                 except:
                     logging.exception("Download error for dataset %(dataset_name)s" % locals())
                     status = "ERROR"
+            else:
+                status = "Ok"
+
         else:
             status = "SKIPPED"
 
