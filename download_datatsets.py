@@ -1,4 +1,5 @@
 from distutils.command.upload import upload
+from urllib.response import addbase
 
 from dns import update
 from hdx.data.dataset import Dataset
@@ -22,7 +23,7 @@ config = None
 def resource_number_from_url(dataset, resource_url):
     for i, r in enumerate(dataset.get_resources()):
 #        if r["url"] == resource_url:
-        if r["url"] == resource_url or "orest-d" in r["url"]:
+        if r["url"] == resource_url or config.new_url_pattern in r["url"]:
             return i
 
 
@@ -44,7 +45,13 @@ def main():
 
     c = urllib3.PoolManager()
     i = 0
-    for index, row in df.iterrows():
+    additional_df=pd.DataFrame(columns=[
+        "decision",
+        "dataset_name",
+        "resource_name",
+        "resource_url"
+    ])
+    for resource_index, row in df.iterrows():
         i += 1
         dataset_name = row.dataset_name
         resource_name = str(row.resource_name)
@@ -61,27 +68,40 @@ def main():
         new_resource_url = None
 
         update_status = ""
+        scraperwiki_resources=[]
         if row.decision == config.decision:
             new_resource_url = config.url_prefix
             if new_resource_url[-1] != "/":
                 new_resource_url += "/"
             new_resource_url += dataset_name + "/" + resource_filename
+            if config.new_url_pattern not in new_resource_url:
+                logging.warning("New url '%s' does not contain the new-url-pattern '%s'"%(new_resource_url,config.new_url_pattern))
+
+            dataset = Dataset.read_from_hdx(dataset_name)
+            resource_index = resource_number_from_url(dataset, resource_url)
+            for i,r in enumerate(dataset.get_resources()):
+                if (config.old_url_pattern in r["url"] or config.new_url_pattern in r["url"]) and i!=resource_index:
+                    additional_df = additional_df.append(dict(
+                        decision = row.decision,
+                        dataset_name = dataset_name,
+                        resource_name = r["name"],
+                        resource_url = r["url"]
+                    ),ignore_index=True)
+            additional_df.to_csv(config.additional)
 
             if config.update_url:
                 logging.info("Update url %(dataset_name)s - %(new_resource_url)s" % locals())
 
                 try:
-                    dataset = Dataset.read_from_hdx(dataset_name)
-                    index = resource_number_from_url(dataset, resource_url)
-                    if index is None:
+                    if resource_index is None:
                         update_status = "RESOURCE NOT FOUND"
                     else:
-                        resource = dataset.get_resource(index)
+                        resource = dataset.get_resource(resource_index)
                         resource["url"] = new_resource_url
                         resource.update_in_hdx()
                         update_status = "OK"
                 except:
-                    logging.error("Update url failed for %(dataset_name)s resource %(index)d" % locals())
+                    logging.error("Update url failed for %(dataset_name)s resource %(resource_index)d" % locals())
                     update_status = "ERROR"
             try:
                 os.makedirs(localpath)
@@ -116,6 +136,13 @@ def main():
             update_status=update_status
         ), ignore_index=True)
         log_df.to_csv(config.processed)
+    additional_df["additional"]=1
+    df["additional"]=0
+    df = df.append(additional_df,ignore_index=True)
+    writer = pd.ExcelWriter(config.additional_table)
+    df.to_excel(writer)
+    writer.save()
+    writer.close()
 
 
 if __name__ == "__main__":
@@ -130,9 +157,18 @@ if __name__ == "__main__":
                         default='https://orest-d.github.io/scraperwiki-snapshot/datasets/',
                         help="URL Prefix before to be connected with dataset and resource name")
     parser.add_argument("-u", "--update-url", action='store_true', help="Update resource url for selected datasets")
-    parser.add_argument("--production", action='store_true', help="Update production system")
+    parser.add_argument("--hdx-site", default="test",
+                        help="HDX site (test, prod, ...)")
     parser.add_argument("--processed", default="processed_datasets.csv",
                         help="Store table of processed entries to a csv file.")
+    parser.add_argument("--additional", default="additional_resource.csv",
+                        help="Store table of additional resources identified to a csv file.")
+    parser.add_argument("--additional-table", default="datasets with scraperwiki_add.xlsx",
+                        help="Store table of original with additional resources to a xlsx file.")
+    parser.add_argument("--old-url-pattern", default="scraperwiki.com",
+                        help="String present in old URLs")
+    parser.add_argument("--new-url-pattern", default="scraperwiki-snapshot/datasets",
+                        help="String present in new URLs")
     parser.add_argument("-l", "--log", help="Log file", default=None)
     parser.add_argument("-d", "--debug", action='store_true', help="Log debug messages.")
     parser.add_argument("-v", "--verbose", action='store_true', help="Increase verbosity.")
@@ -146,7 +182,4 @@ if __name__ == "__main__":
 
     if config.log is not None:
         logging.basicConfig(filename=config.log, level=log_level)
-    if config.production:
-        facade(main, hdx_site='prod', user_agent_config_yaml=join(expanduser('~'), '.dscheckuseragent.yml'))
-    else:
-        facade(main, hdx_site='test', user_agent_config_yaml=join(expanduser('~'), '.dscheckuseragent.yml'))
+    facade(main, hdx_site=config.hdx_site, user_agent_config_yaml=join(expanduser('~'), '.dscheckuseragent.yml'))
