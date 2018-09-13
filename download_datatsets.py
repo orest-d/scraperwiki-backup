@@ -26,6 +26,11 @@ def resource_number_from_url(dataset, resource_url):
         if r["url"] == resource_url or config.new_url_pattern in r["url"]:
             return i
 
+def resource_from_name(dataset, resource_name):
+    for r in dataset.get_resources():
+        if r["name"] == resource_name:
+            return r
+
 
 def main():
     global config
@@ -87,21 +92,21 @@ def main():
                         resource_name = r["name"],
                         resource_url = r["url"]
                     ),ignore_index=True)
-            additional_df.to_csv(config.additional)
+            additional_df.to_csv(config.additional,index_label='Index')
 
             if config.update_url:
-                logging.info("Update url %(dataset_name)s - %(new_resource_url)s" % locals())
+                logging.info("Update url %(dataset_name)s, resource: %(resource_name)s to %(new_resource_url)s" % locals())
 
                 try:
-                    if resource_index is None:
+                    resource = resource_from_name(dataset, resource_name)
+                    if resource is None:
                         update_status = "RESOURCE NOT FOUND"
                     else:
-                        resource = dataset.get_resource(resource_index)
                         resource["url"] = new_resource_url
                         resource.update_in_hdx()
                         update_status = "OK"
                 except:
-                    logging.error("Update url failed for %(dataset_name)s resource %(resource_index)d" % locals())
+                    logging.error("Update url failed for %(dataset_name)s resource %(resource_name)s" % locals())
                     update_status = "ERROR"
             try:
                 os.makedirs(localpath)
@@ -135,7 +140,7 @@ def main():
             status=status,
             update_status=update_status
         ), ignore_index=True)
-        log_df.to_csv(config.processed)
+        log_df.to_csv(config.processed,index_label='Index')
     additional_df["additional"]=1
     df["additional"]=0
     df = df.append(additional_df,ignore_index=True)
@@ -154,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--refresh", action='store_true',
                         help="Always download resources (even if they exist locally)")
     parser.add_argument("--url-prefix",
-                        default='https://orest-d.github.io/scraperwiki-snapshot/datasets/',
+                        default='https://ocha-dap.github.io/scraperwiki-snapshot/datasets/',
                         help="URL Prefix before to be connected with dataset and resource name")
     parser.add_argument("-u", "--update-url", action='store_true', help="Update resource url for selected datasets")
     parser.add_argument("--hdx-site", default="test",
