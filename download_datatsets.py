@@ -108,6 +108,7 @@ def main():
                 except:
                     logging.error("Update url failed for %(dataset_name)s resource %(resource_name)s" % locals())
                     update_status = "ERROR"
+                    traceback.print_exc()
             try:
                 os.makedirs(localpath)
             except:
