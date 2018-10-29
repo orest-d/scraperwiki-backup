@@ -21,12 +21,16 @@ config = None
 
 
 def resource_number_from_url(dataset, resource_url):
+    if dataset is None:
+        return None
     for i, r in enumerate(dataset.get_resources()):
 #        if r["url"] == resource_url:
         if r["url"] == resource_url or config.new_url_pattern in r["url"]:
             return i
 
 def resource_from_name(dataset, resource_name):
+    if dataset is None:
+        return None
     for r in dataset.get_resources():
         if r["name"] == resource_name:
             return r
@@ -58,7 +62,7 @@ def main():
     ])
     for resource_index, row in df.iterrows():
         i += 1
-        dataset_name = row.dataset_name
+        dataset_name = str(row.dataset_name)
         resource_name = str(row.resource_name)
         # print ("%(i)3d %(dataset_name)30s %(resource_name)30s"%locals())
         resource_url = row.resource_url
@@ -83,48 +87,75 @@ def main():
                 logging.warning("New url '%s' does not contain the new-url-pattern '%s'"%(new_resource_url,config.new_url_pattern))
 
             dataset = Dataset.read_from_hdx(dataset_name)
-            resource_index = resource_number_from_url(dataset, resource_url)
-            for i,r in enumerate(dataset.get_resources()):
-                if (config.old_url_pattern in r["url"] or config.new_url_pattern in r["url"]) and i!=resource_index:
-                    additional_df = additional_df.append(dict(
-                        decision = row.decision,
-                        dataset_name = dataset_name,
-                        resource_name = r["name"],
-                        resource_url = r["url"]
-                    ),ignore_index=True)
-            additional_df.to_csv(config.additional,index_label='Index')
-
-            if config.update_url:
-                logging.info("Update url %(dataset_name)s, resource: %(resource_name)s to %(new_resource_url)s" % locals())
-
-                try:
-                    resource = resource_from_name(dataset, resource_name)
-                    if resource is None:
-                        update_status = "RESOURCE NOT FOUND"
-                    else:
-                        resource["url"] = new_resource_url
-                        resource.update_in_hdx()
-                        update_status = "OK"
-                except:
-                    logging.error("Update url failed for %(dataset_name)s resource %(resource_name)s" % locals())
-                    update_status = "ERROR"
-                    traceback.print_exc()
-            try:
-                os.makedirs(localpath)
-            except:
-                pass
-            logging.info("Process dataset %(dataset_name)s" % locals())
-            logging.info("Fetch data from url %(dataset_name)s" % locals())
-            if config.refresh or not os.path.exists(localfile):
-                try:
-                    with c.request('GET', resource_url, preload_content=False) as response, open(localfile, 'wb') as f:
-                        shutil.copyfileobj(response, f)
-                    status = "OK"
-                except:
-                    logging.exception("Download error for dataset %(dataset_name)s" % locals())
-                    status = "ERROR"
+            if dataset is None:
+                status = "ERROR"
+                update_status = "DATASET NOT FOUND"
             else:
-                status = "Ok"
+                resource_index = resource_number_from_url(dataset, resource_url)
+                for i,r in enumerate(dataset.get_resources()):
+                    if (config.old_url_pattern in r["url"] or config.new_url_pattern in r["url"]) and i!=resource_index:
+                        additional_df = additional_df.append(dict(
+                            decision = row.decision,
+                            dataset_name = dataset_name,
+                            resource_name = r["name"],
+                            resource_url = r["url"]
+                        ),ignore_index=True)
+                additional_df.to_csv(config.additional,index_label='Index')
+
+                if config.update_url:
+                    logging.info("Update url %(dataset_name)s, resource: %(resource_name)s to %(new_resource_url)s" % locals())
+
+                    try:
+                        resource = resource_from_name(dataset, resource_name)
+                        if resource is None:
+                            update_status = "RESOURCE NOT FOUND"
+                        else:
+                            resource["url"] = new_resource_url
+                            resource.update_in_hdx()
+                            update_status = "OK"
+                    except:
+                        logging.error("Update url failed for %(dataset_name)s resource %(resource_name)s" % locals())
+                        update_status = "ERROR"
+                        traceback.print_exc()
+
+                try:
+                    os.makedirs(localpath)
+                except:
+                    pass
+                logging.info("Process dataset %(dataset_name)s" % locals())
+                logging.info("Fetch data from url %(dataset_name)s" % locals())
+                if config.refresh or not os.path.exists(localfile):
+                    try:
+                        with c.request('GET', resource_url, preload_content=False) as response, open(localfile, 'wb') as f:
+                            shutil.copyfileobj(response, f)
+                        status = "OK"
+                    except:
+                        logging.exception("Download error for dataset %(dataset_name)s" % locals())
+                        status = "ERROR"
+                else:
+                    status = "Ok"
+
+                if config.upload:
+                    logging.info("Upload %(dataset_name)s, resource: %(resource_name)s" % locals())
+
+                    try:
+                        resource = resource_from_name(dataset, resource_name)
+                        if resource is None:
+                            update_status = "RESOURCE NOT FOUND"
+                        else:
+                            try:
+                                file_type = os.path.splitext(localfile)[1][1:].lower()
+                            except:
+                                file_type = "csv"
+
+                            resource.set_file_type(file_type)  # set the file type to eg. csv
+                            resource.set_file_to_upload(localfile)
+                            resource.update_in_hdx()
+                            update_status = "OK"
+                    except:
+                        logging.error("Uploading %(dataset_name)s resource %(resource_name)s failed" % locals())
+                        update_status = "ERROR"
+                        traceback.print_exc()
 
         else:
             status = "SKIPPED"
@@ -163,6 +194,7 @@ if __name__ == "__main__":
                         default='https://ocha-dap.github.io/scraperwiki-snapshot/datasets/',
                         help="URL Prefix before to be connected with dataset and resource name")
     parser.add_argument("-u", "--update-url", action='store_true', help="Update resource url for selected datasets")
+    parser.add_argument("--upload", action='store_true', help="Upload resource (does not work with --update-utl)")
     parser.add_argument("--hdx-site", default="test",
                         help="HDX site (test, prod, ...)")
     parser.add_argument("--processed", default="processed_datasets.csv",
